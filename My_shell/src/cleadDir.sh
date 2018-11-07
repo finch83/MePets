@@ -11,6 +11,7 @@ SRCDIR=""
 REMOVEDFILES=()
 REMOVEDIRS=()
 LEFTFILES=$2
+FLAG=0
 declare -A MAPFILEDATE
 
 
@@ -73,17 +74,8 @@ check_args $1 SRCDIR
     findarr=($(echo $regexString))
     for ((i = 0; i < ${#findarr[@]}; i++));
     do
-#    	echo "Element: ${findarr[i]}"
         remove_element ${findarr[i]}
     done
-
-# Remove elements
-    echo "*----------Removed Files----------*"
-    for (( i = 0; i < ${#REMOVEDFILES[@]}; i++ )); do
-        rm -f ${REMOVEDFILES[i]}
-        echo "${REMOVEDFILES[i]}"
-    done
-REMOVEDFILES=()
 
 # Clear dir from dirs which matches with pattern
 # Create associative array MAPFILEDATE with values
@@ -98,9 +90,21 @@ REMOVEDFILES=()
             continue
         fi
     
-        FILEDATE=`echo $tmpFile | awk -F'.' '{print $2}' | awk -F'T' '{print $1$2}'`
-        MAPFILEDATE[$file]=$FILEDATE
-
+        for ((i = 0; i < ${#REMOVEDFILES[@]}; i++));
+        do
+            if [ $file == ${REMOVEDFILES[i]} ];then
+            	FLAG=1
+                break
+        	fi
+        done
+        
+        if [ $FLAG -eq 0 ]; then
+            FILEDATE=`echo $tmpFile | awk -F'.' '{print $2}' | awk -F'T' '{print $1$2}'`
+            MAPFILEDATE[$file]=$FILEDATE
+        else
+        	FLAG=0
+        fi
+        
     done
 
 # Sort MAPFILEDATE by value
@@ -119,7 +123,7 @@ REMOVEDFILES=()
     done
     
 # Remove elements
-#    echo "*----------Removed Files----------*"
+    echo "*----------Removed Files----------*"
     for (( i = 0; i < ${#REMOVEDFILES[@]}; i++ )); do
         rm -f ${REMOVEDFILES[i]}
         echo "${REMOVEDFILES[i]}"
