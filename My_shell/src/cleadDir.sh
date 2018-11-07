@@ -10,12 +10,13 @@ FILEDATE2=0
 SRCDIR=""
 REMOVEDFILES=()
 REMOVEDIRS=()
-# ToDo Add check for second paramenter
 LEFTFILES=$2
 declare -A MAPFILEDATE
 
 
 #------------
+# Check input arguments
+# ToDo Add check for second paramenter
 check_args()
 {
     if [ "$1" != "" ]; then
@@ -40,10 +41,21 @@ check_args()
 
 
 #------------
-remove_file()
+# Push first argument to Array depends on type
+# REMOVEDIRS	-	Array of dirs for remove
+# REMOVEDFILES	-	Array of files for remove
+remove_element()
 {
     if [ -d $1 ]; then
-        REMOVEDIRS+=($1)
+    	if [ $1 != $SRCDIR ]; then
+    		for ((j = 0; j < ${#REMOVEDIRS[@]}; j++));
+    		do
+    			if [ $1 == ${REMOVEDIRS[j]} ]; then
+                    return
+                fi
+            done
+            REMOVEDIRS+=($1)
+        fi
     else
         REMOVEDFILES+=($1)
     fi
@@ -51,18 +63,38 @@ remove_file()
 
 
 #------------
-check_args $1 SRCDIR
-
+# Main function
 main()
 {
-    find $SRCDIR -regextype egrep ! -regex $regexp -delete
+check_args $1 SRCDIR
 
+# Get array of elements which do not match with pattern	
+	regexString=`find $SRCDIR -regextype egrep ! -regex $regexp`
+    findarr=($(echo $regexString))
+    for ((i = 0; i < ${#findarr[@]}; i++));
+    do
+#    	echo "Element: ${findarr[i]}"
+        remove_element ${findarr[i]}
+    done
+
+# Remove elements
+    echo "*----------Removed Files----------*"
+    for (( i = 0; i < ${#REMOVEDFILES[@]}; i++ )); do
+        rm -f ${REMOVEDFILES[i]}
+        echo "${REMOVEDFILES[i]}"
+    done
+REMOVEDFILES=()
+
+# Clear dir from dirs which matches with pattern
+# Create associative array MAPFILEDATE with values
+# Key	= File Name
+# Value	= File Date 
     for file in "$SRCDIR"/*
     do
         tmpFile=`basename "$file"`
 
         if [ -d "$file" ]; then
-            remove_file $file
+            remove_element $file
             continue
         fi
     
@@ -71,32 +103,40 @@ main()
 
     done
 
+# Sort MAPFILEDATE by value
+# and get a String with file names as result
     sortedString=`for key in ${!MAPFILEDATE[@]};
     do
         echo ${key} ${MAPFILEDATE[${key}]}
     done | sort -k2rn | awk '{ print $1}'`
 
+# Get an Array from String by replacing '\n' with ' '
     sortedArray=($(echo $sortedString | tr "\n" " "))
+
+# Push elemets in releted arrays    
     for (( i = $LEFTFILES; i < ${#sortedArray[@]}; i++ )); do
-        remove_file ${sortedArray[i]}
+        remove_element ${sortedArray[i]}
     done
     
+# Remove elements
+#    echo "*----------Removed Files----------*"
+    for (( i = 0; i < ${#REMOVEDFILES[@]}; i++ )); do
+        rm -f ${REMOVEDFILES[i]}
+        echo "${REMOVEDFILES[i]}"
+    done
+
     echo "*----------Removed Dirs----------*"
     for (( i = 0; i < ${#REMOVEDIRS[@]}; i++ )); do
         rm -rf ${REMOVEDIRS[i]}
         echo "${REMOVEDIRS[i]}"
     done
-    
-    echo "*----------Removed Files----------*"
-    for (( i = 0; i < ${#REMOVEDFILES[@]}; i++ )); do
-        rm -f ${REMOVEDFILES[i]}
-        echo "${REMOVEDFILES[i]}"
-    done
-    
+
     echo "*----------Left files----------*"
     for (( i = 0; i < $LEFTFILES; i++ )); do
         echo ${sortedArray[i]}
     done
 }
 
-main
+
+# Call main()
+main $1 
