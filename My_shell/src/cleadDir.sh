@@ -11,7 +11,6 @@ SRCDIR=""
 REMOVEDFILES=()
 REMOVEDIRS=()
 LEFTFILES=$2
-FLAG=0
 declare -A MAPFILEDATE
 
 
@@ -90,6 +89,7 @@ check_args $1 SRCDIR
             continue
         fi
     
+        FLAG=0
         for ((i = 0; i < ${#REMOVEDFILES[@]}; i++));
         do
             if [ $file == ${REMOVEDFILES[i]} ];then
